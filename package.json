@@ -1,0 +1,45 @@
+{
+  "engines": {
+    "node": ">=14.13.0",
+    "pnpm": "8.8.0"
+  },
+  "packageManager": "pnpm@8.8.0",
+  "name": "import-single-ts",
+  "version": "1.0.0",
+  "author": "Anton Stoychev",
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "antitoxic-dev": "./src/import-single.ts",
+      "types": "./src/import-single.d.ts",
+      "import": "./lib/import-single.mjs",
+      "default": "./lib/import-single.cjs"
+    }
+  },
+  "files": ["lib", ".npmrc"],
+  "scripts": {
+    "dev": "pnpm build --watch --preserveWatchOutput",
+    "ebuild": "esbuild ./src/import-single.ts --platform=node --target=node14 --outdir=lib",
+    "build:esm": "pnpm ebuild --format=esm --out-extension:.js=.mjs",
+    "build:cjs": "pnpm ebuild --format=cjs --out-extension:.js=.cjs",
+    "build:declarations": "tsc --project ./tsconfig.json",
+    "build": "pnpm build:esm && pnpm build:cjs && pnpm build:declarations",
+    "prepack": "pnpm build"
+  },
+  "dependencies": {
+    "enhanced-resolve": "^5.15.0"
+  },
+  "devDependencies": {
+    "@tsconfig/node18": "^18.2.2",
+    "@tsconfig/strictest": "^2.0.2",
+    "@types/node": "^20.6.3",
+    "esbuild": "^0.19.5"
+  },
+  "peerDependencies": {
+    "esbuild": "^0.19.5"
+  },
+  "optionalDependencies": {
+    "prettier": "^3.0.3",
+    "typescript": "^5.2.2"
+  }
+}

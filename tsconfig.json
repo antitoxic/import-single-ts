@@ -1,0 +1,12 @@
+{
+  "extends": ["@tsconfig/node18", "@tsconfig/strictest"],
+  "compilerOptions": {
+    "outDir": "lib",
+    "customConditions": ["antitoxic-dev"],
+    "noPropertyAccessFromIndexSignature": false,
+    "noImplicitReturns": false,
+    "declaration": true,
+    "emitDeclarationOnly": true
+  },
+  "include": ["src/**/*"]
+}
