@@ -1,4 +1,8 @@
 # `import-single-ts`
+![Static Badge](https://img.shields.io/badge/version-1.0.1-green)
+![NPM](https://img.shields.io/npm/l/import-single-ts)
+![GitHub issues](https://img.shields.io/github/issues/antitoxic/import-single-ts)
+![GitHub Sponsors](https://img.shields.io/github/sponsors/antitoxic)
 
 ## Description
 
@@ -11,13 +15,14 @@ files**.
    it
 2. **BUT** you realize you can't do `import './myfile.ts'`,
    `require('./myfile.ts')` or `await import('./myfile.ts')`.
-3. And you **DON'T want** a additional compilation step before process starts
+3. And you **DON'T want** an additional compilation step before the process
+   starts
 
-**This is where this package comes**. It allows you do
+**This is where `import-single-ts` comes in**. It allows you do
 `await importSingleTs('./myfile.ts')` with **_no extra steps needed_**.
 
 A common example would be defining things like configuration or setup in a
-type-safe (_ts_) environment.
+type-safe (_ts_) environment. Think `vite.config.ts`, `webpack.config.ts`, etc.
 
 ## Usage
 
@@ -60,6 +65,10 @@ type-safe (_ts_) environment.
 - 💻️ **Node.js REPL** is supported as well
 - ⛔️ Not intended for [`bun`](https://bun.sh/docs/runtime/typescript) —
   TypeScript is supported out of the box in `bun`, no need to use this package.
+
+## Funding ![GitHub Sponsors](https://img.shields.io/github/sponsors/antitoxic)
+
+If this makes your work easier, [consider becoming a sponsor](https://github.com/sponsors/antitoxic).
 
 ## Inspiration
 
