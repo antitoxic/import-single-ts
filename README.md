@@ -91,5 +91,3 @@ type-safe (_ts_) environment.
 
 - replace `enhanced-resolve` when
   [web-infra-dev/oxc](https://github.com/web-infra-dev/oxc) ports it to Rust
-
-[tsicon]: "TypeScript icon"
