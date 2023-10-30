@@ -57,6 +57,7 @@ type-safe (_ts_) environment.
   ```ts
   await importSingleTs('./some.ts', { conditions: ['mycompany-dev'], alias: { a: "b" }, ... })
   ```
+- 💻️ **Node.js REPL** is supported as well
 - ⛔️ Not intended for [`bun`](https://bun.sh/docs/runtime/typescript) —
   TypeScript is supported out of the box in `bun`, no need to use this package.
 
