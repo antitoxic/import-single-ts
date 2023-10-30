@@ -15,8 +15,8 @@ const NODEJS_SUPPORTED_FILE_EXTENSIONS = [
   'js',
   'mjs',
   'cjs',
-  '.node',
-  '.json',
+  'node',
+  'json',
 ].map(ext => `.${ext}`);
 const EMPTY_RESOLVE_CONTEXT = {};
 
