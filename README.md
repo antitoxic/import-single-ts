@@ -1,4 +1,5 @@
 # `import-single-ts`
+
 ![Static Badge](https://img.shields.io/badge/version-1.0.1-green)
 ![NPM](https://img.shields.io/npm/l/import-single-ts)
 ![GitHub issues](https://img.shields.io/github/issues/antitoxic/import-single-ts)
@@ -26,7 +27,7 @@ type-safe (_ts_) environment. Think `vite.config.ts`, `webpack.config.ts`, etc.
 
 ## Usage
 
-1. Make sure you've installed the `esbuild` (_it's peer dependency_)
+1. Make sure you've installed the `esbuild` (_it's a peer dependency_)
 2. ```ts
    import { importSingleTs } from 'import-single-ts';
    // or for cjs: const { importSingleTs } = require('import-single-ts');
@@ -68,7 +69,8 @@ type-safe (_ts_) environment. Think `vite.config.ts`, `webpack.config.ts`, etc.
 
 ## Funding ![GitHub Sponsors](https://img.shields.io/github/sponsors/antitoxic)
 
-If this makes your work easier, [consider becoming a sponsor](https://github.com/sponsors/antitoxic).
+If this makes your work easier,
+[consider becoming a sponsor](https://github.com/sponsors/antitoxic).
 
 ## Inspiration
 
