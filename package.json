@@ -1,17 +1,16 @@
 {
   "engines": {
-    "node": ">=14.13.0",
-    "pnpm": "8.8.0"
+    "node": ">=14.13.0"
   },
-  "packageManager": "pnpm@8.8.0",
+  "packageManager": "pnpm@8.11.0",
   "name": "import-single-ts",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": "Anton Stoychev",
   "license": "MIT",
   "exports": {
     ".": {
       "antitoxic-dev": "./src/import-single.ts",
-      "types": "./src/import-single.d.ts",
+      "types": "./lib/import-single.d.ts",
       "import": "./lib/import-single.mjs",
       "default": "./lib/import-single.cjs"
     }
