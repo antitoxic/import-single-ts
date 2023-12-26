@@ -4,7 +4,7 @@
   },
   "packageManager": "pnpm@8.11.0",
   "name": "import-single-ts",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "author": "Anton Stoychev",
   "license": "MIT",
   "exports": {
@@ -15,7 +15,10 @@
       "default": "./lib/import-single.cjs"
     }
   },
-  "files": ["lib", ".npmrc"],
+  "files": [
+    "lib",
+    ".npmrc"
+  ],
   "scripts": {
     "dev": "pnpm build --watch --preserveWatchOutput",
     "ebuild": "esbuild ./src/import-single.ts --platform=node --target=node14 --outdir=lib",

@@ -4,10 +4,12 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
-import enhancedResolve from 'enhanced-resolve';
+import enhancedResolve, {
+  type ResolveOptionsOptionalFS,
+} from 'enhanced-resolve';
 import { build, BuildOptions } from 'esbuild';
 
-const { CachedInputFileSystem, ResolverFactory } = enhancedResolve;
+const { CachedInputFileSystem, create: createResolverFn } = enhancedResolve;
 const fsp = fs.promises;
 
 const BUILTIN_MODULES_SET = new Set(builtinModules);
@@ -18,7 +20,6 @@ const NODEJS_SUPPORTED_FILE_EXTENSIONS = [
   'node',
   'json',
 ].map(ext => `.${ext}`);
-const EMPTY_RESOLVE_CONTEXT = {};
 
 interface ResolutionOptions
   extends Pick<
@@ -35,7 +36,7 @@ export const importSingleTs = async (
   requestedImportPath: string,
   resolutionOptions?: ResolutionOptions,
 ) => {
-  const resolver = ResolverFactory.createResolver({
+  const finalResolutionOptions = {
     fileSystem: new CachedInputFileSystem(fs, 4000),
     extensions: NODEJS_SUPPORTED_FILE_EXTENSIONS,
     ...(resolutionOptions?.mainFields && {
@@ -46,25 +47,27 @@ export const importSingleTs = async (
       ...(resolutionOptions?.conditions || []),
       'import',
       'node',
-      'require',
       'default',
     ],
+  } satisfies ResolveOptionsOptionalFS;
+  const resolveMain = createResolverFn(finalResolutionOptions);
+  const resolveWithCJS = createResolverFn({
+    ...finalResolutionOptions,
+    conditionNames: [...finalResolutionOptions.conditionNames, 'require'],
   });
 
-  const promisifiedResolve = promisify(
-    (
-      requesterDir: string,
-      requestedFilePath: string,
-      callback: (err: any, resolvedPath?: string | false) => void,
-    ) =>
-      resolver.resolve(
-        EMPTY_RESOLVE_CONTEXT,
-        requesterDir,
-        requestedFilePath,
-        EMPTY_RESOLVE_CONTEXT,
-        callback,
-      ),
-  );
+  const promisifiedResolveMain = promisify(resolveMain);
+  const promisifiedResolveWithCJS = promisify(resolveWithCJS);
+  const promisifiedResolve = async (
+    requesterDir: string,
+    requestedFilePath: string,
+  ) => {
+    try {
+      return await promisifiedResolveMain(requesterDir, requestedFilePath);
+    } catch (err) {
+      return await promisifiedResolveWithCJS(requesterDir, requestedFilePath);
+    }
+  };
 
   const resolvedImportPath = path.isAbsolute(requestedImportPath)
     ? requestedImportPath
