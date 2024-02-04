@@ -1,6 +1,6 @@
 # `import-single-ts`
 
-![Static Badge](https://img.shields.io/badge/version-1.0.1-green)
+![Static Badge](https://img.shields.io/badge/version-1.0.3-green)
 ![NPM](https://img.shields.io/npm/l/import-single-ts)
 ![GitHub issues](https://img.shields.io/github/issues/antitoxic/import-single-ts)
 ![GitHub Sponsors](https://img.shields.io/github/sponsors/antitoxic)
@@ -66,6 +66,8 @@ type-safe (_ts_) environment. Think `vite.config.ts`, `webpack.config.ts`, etc.
 - 💻️ **Node.js REPL** is supported as well
 - ⛔️ Not intended for [`bun`](https://bun.sh/docs/runtime/typescript) —
   TypeScript is supported out of the box in `bun`, no need to use this package.
+- ⛔️ Not intended for `Windows` — it's not tested on `Windows` and I won't be
+  able to dedicate extra time to debug problems there.
 
 ## Funding ![GitHub Sponsors](https://img.shields.io/github/sponsors/antitoxic)
 
