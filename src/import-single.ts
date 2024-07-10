@@ -1,7 +1,7 @@
 import * as fs from 'node:fs';
 import { builtinModules } from 'node:module';
 import * as path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 
 import enhancedResolve, {
@@ -137,7 +137,7 @@ export const importSingleTs = async (
   });
 
   try {
-    return await import(fileNameTemp);
+    return await import(pathToFileURL(fileNameTemp));
   } finally {
     fsp.unlink(fileNameTemp).catch(() => {
       // Ignore errors
