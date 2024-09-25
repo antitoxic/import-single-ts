@@ -3,6 +3,9 @@
   "compilerOptions": {
     "outDir": "lib",
     "customConditions": ["antitoxic-dev"],
+    "target": "esnext",
+    "moduleResolution": "bundler",
+    "module": "esnext",
     "noPropertyAccessFromIndexSignature": false,
     "noImplicitReturns": false,
     "declaration": true,

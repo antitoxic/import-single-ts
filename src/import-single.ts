@@ -1,15 +1,11 @@
 import * as fs from 'node:fs';
+import * as crypto from 'node:crypto';
 import { builtinModules } from 'node:module';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { promisify } from 'node:util';
 
-import enhancedResolve, {
-  type ResolveOptionsOptionalFS,
-} from 'enhanced-resolve';
 import { build, BuildOptions } from 'esbuild';
 
-const { CachedInputFileSystem, create: createResolverFn } = enhancedResolve;
 const fsp = fs.promises;
 
 const BUILTIN_MODULES_SET = new Set(builtinModules);
@@ -36,72 +32,62 @@ export const importSingleTs = async (
   requestedImportPath: string,
   resolutionOptions?: ResolutionOptions,
 ) => {
-  const finalResolutionOptions = {
-    fileSystem: new CachedInputFileSystem(fs, 4000),
-    extensions: NODEJS_SUPPORTED_FILE_EXTENSIONS,
-    ...(resolutionOptions?.mainFields && {
-      mainFields: resolutionOptions.mainFields,
-    }),
-    ...(resolutionOptions?.alias && { alias: resolutionOptions.alias }),
-    conditionNames: [
-      ...(resolutionOptions?.conditions || []),
-      'import',
-      'node',
-      'default',
-    ],
-  } satisfies ResolveOptionsOptionalFS;
-  const resolveMain = createResolverFn(finalResolutionOptions);
-  const resolveWithCJS = createResolverFn({
-    ...finalResolutionOptions,
-    conditionNames: [...finalResolutionOptions.conditionNames, 'require'],
-  });
-
-  const promisifiedResolveMain = promisify(resolveMain);
-  const promisifiedResolveWithCJS = promisify(resolveWithCJS);
-  const promisifiedResolve = async (
-    requesterDir: string,
-    requestedFilePath: string,
-  ) => {
-    try {
-      return await promisifiedResolveMain(requesterDir, requestedFilePath);
-    } catch (err) {
-      return await promisifiedResolveWithCJS(requesterDir, requestedFilePath);
-    }
-  };
-
   const resolvedImportPath = path.isAbsolute(requestedImportPath)
     ? requestedImportPath
-    : await promisifiedResolve(getCallerDirPath(), requestedImportPath);
+    : require.resolve(requestedImportPath, {
+        paths: [getCallerDirPath()],
+      });
 
   if (!resolvedImportPath) {
     throw new Error(`Could not resolve: "${resolvedImportPath}"`);
   }
 
-  const fileNameTemp = `${resolvedImportPath}.timestamp-${Date.now()}-${Math.random()
-    .toString(16)
-    .slice(2)}.mjs`;
+  const notRunnableByNodeFilesSet = new Set<string>();
+  notRunnableByNodeFilesSet.add(resolvedImportPath);
+  const tempFilePathPerResolvedImportPath = new Map<string, string>();
+  tempFilePathPerResolvedImportPath.set(
+    resolvedImportPath,
+    getTempFileName(resolvedImportPath),
+  );
+  const tempFilePathPerStringifiedImport = new Map<string, string>();
 
-  await build({
-    absWorkingDir: path.dirname(resolvedImportPath),
-    entryPoints: [resolvedImportPath],
-    outfile: fileNameTemp,
+  const baseEsbuildOptions: BuildOptions = {
     target: [`node${process.versions.node}`],
     platform: 'node',
     bundle: true,
     format: 'esm',
     ...resolutionOptions,
+  } as const;
+
+  /**
+   * `esbuild` cannot output 1 file per every import like `tsc`
+   * @see https://github.com/evanw/esbuild/issues/708
+   *
+   * We need that to support any location-based code like `__dirname`, `__filename`,
+   * require.resolve, etc.
+   *
+   * That's why we run esbuild once to find all imports we need to transpile
+   * AND then once PER every import to ONLY transform the code of that single import
+   * and create a temporary file.
+   */
+
+  await build({
+    ...baseEsbuildOptions,
+    write: false,
+    absWorkingDir: path.dirname(resolvedImportPath),
+    entryPoints: [resolvedImportPath],
     plugins: [
       {
         name: 'externalize-runnable-js',
-        setup: function externalizeRunnableJs({ onResolve }) {
+        setup: function externalizeRunnableJs({ onResolve, resolve }) {
           onResolve({ filter: /.+/ }, async args => {
+            if (args.pluginData === true) {
+              return;
+            }
             const requestedInnerImportPath = args.path;
 
             // opt out of externalizing known scenarios before even resolving them
-            if (
-              requestedInnerImportPath.startsWith('data:') ||
-              args.kind === 'entry-point'
-            ) {
+            if (isNeverExternalImport(requestedInnerImportPath, args.kind)) {
               return null;
             }
 
@@ -112,23 +98,46 @@ export const importSingleTs = async (
               return { external: true };
             }
 
-            try {
-              const resolvedInnerImportPath = await promisifiedResolve(
-                args.resolveDir,
-                requestedInnerImportPath,
+            const resolvedInnerImportPath = (
+              await resolve(args.path, {
+                importer: args.importer,
+                namespace: args.namespace,
+                resolveDir: args.resolveDir,
+                kind: args.kind,
+                pluginData: true,
+              })
+            ).path;
+
+            const isRunnableByNode =
+              resolvedInnerImportPath &&
+              (await fsp.stat(resolvedInnerImportPath).catch(() => false)) &&
+              NODEJS_SUPPORTED_FILE_EXTENSIONS.some(ext =>
+                resolvedInnerImportPath.endsWith(ext),
               );
 
-              const isRunnableByNode =
-                resolvedInnerImportPath &&
-                (await fsp.stat(resolvedInnerImportPath).catch(() => false)) &&
-                NODEJS_SUPPORTED_FILE_EXTENSIONS.some(ext =>
-                  resolvedInnerImportPath.endsWith(ext),
+            if (!isRunnableByNode) {
+              if (resolvedInnerImportPath) {
+                notRunnableByNodeFilesSet.add(resolvedInnerImportPath);
+                if (
+                  !tempFilePathPerResolvedImportPath.has(
+                    resolvedInnerImportPath,
+                  )
+                ) {
+                  tempFilePathPerResolvedImportPath.set(
+                    resolvedInnerImportPath,
+                    getTempFileName(resolvedInnerImportPath),
+                  );
+                }
+                tempFilePathPerStringifiedImport.set(
+                  stringifyEsbuildImportInfo(args),
+                  tempFilePathPerResolvedImportPath.get(
+                    resolvedInnerImportPath,
+                  )!,
                 );
-              return isRunnableByNode
-                ? { external: true, path: resolvedInnerImportPath }
-                : null;
-            } catch (e) {
+              }
               return null;
+            } else {
+              return { external: true, path: resolvedInnerImportPath };
             }
           });
         },
@@ -136,14 +145,62 @@ export const importSingleTs = async (
     ],
   });
 
+  await Promise.all(
+    [...notRunnableByNodeFilesSet].map(async resolvedAbsPath => {
+      const fileNameTemp =
+        tempFilePathPerResolvedImportPath.get(resolvedAbsPath)!;
+      return build({
+        ...baseEsbuildOptions,
+        entryPoints: [resolvedAbsPath],
+        outfile: fileNameTemp,
+        plugins: [
+          {
+            name: 'replace-generated-paths-imports',
+            setup: function externalizeRunnableJs({ onResolve }) {
+              onResolve({ filter: /.+/ }, args => {
+                // opt out of externalizing known scenarios before even resolving them
+                if (isNeverExternalImport(args.path, args.kind)) {
+                  return null;
+                }
+                const generatedPath = tempFilePathPerStringifiedImport.get(
+                  stringifyEsbuildImportInfo(args),
+                );
+                return {
+                  external: true,
+                  ...(generatedPath && { path: generatedPath }),
+                };
+              });
+            },
+          },
+        ],
+      });
+    }),
+  );
+
   try {
-    return await import(fileNameTemp);
+    return await import(
+      tempFilePathPerResolvedImportPath.get(resolvedImportPath)!
+    );
   } finally {
-    fsp.unlink(fileNameTemp).catch(() => {
-      // Ignore errors
+    tempFilePathPerResolvedImportPath.forEach(fileNameTemp => {
+      fsp.unlink(fileNameTemp).catch(() => {
+        // Ignore errors
+      });
     });
   }
 };
+
+const isNeverExternalImport = (importPath: string, kind: string) =>
+  importPath.startsWith('data:') || kind === 'entry-point';
+
+const getTempFileName = (absolutePath: string) =>
+  `${absolutePath}.importSingleTs.timestamp-${Date.now()}-${crypto.randomBytes(16).toString('hex')}.mjs`;
+
+const stringifyEsbuildImportInfo = (args: {
+  kind: string;
+  importer: string;
+  path: string;
+}) => `${args.kind}--${args.importer}--${args.path}`;
 
 const getCallerDirPath = () => {
   const originalPrepareStackTrace = Error.prepareStackTrace;
@@ -158,7 +215,11 @@ const getCallerDirPath = () => {
     if (callFilePath && callFilePath !== currentFilePath) {
       return callFilePath.startsWith('REPL')
         ? process.cwd()
-        : path.dirname(fileURLToPath(callFilePath));
+        : path.dirname(
+            callFilePath.startsWith('file://')
+              ? fileURLToPath(callFilePath)
+              : callFilePath,
+          );
     }
   }
 

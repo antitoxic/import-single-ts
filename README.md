@@ -1,6 +1,6 @@
 # `import-single-ts`
 
-![Static Badge](https://img.shields.io/badge/version-1.0.3-green)
+![Static Badge](https://img.shields.io/badge/version-1.1.5-green)
 ![NPM](https://img.shields.io/npm/l/import-single-ts)
 ![GitHub issues](https://img.shields.io/github/issues/antitoxic/import-single-ts)
 ![GitHub Sponsors](https://img.shields.io/github/sponsors/antitoxic)
@@ -34,7 +34,10 @@ type-safe (_ts_) environment. Think `vite.config.ts`, `webpack.config.ts`, etc.
    // ...
    await importSingleTs('./some.ts'); // place where you need it
    ```
-   It has the same API as the native dynamic import — `import()`.
+
+   It has the same API as the native dynamic import — `import()`\*.
+
+   \* With some optional extras (_see below_).
 
 ## Features & Limitations
 
@@ -49,17 +52,14 @@ type-safe (_ts_) environment. Think `vite.config.ts`, `webpack.config.ts`, etc.
   they are loaded from their original path which means they are kept in the
   internal node module cache and there won't be duplicate module executions if
   they are imported again.
-- 🚀 **Single dependency** (`enhanced-resolve`) + 1 **peer** dependency of
-  `esbuild` — It's using `enhanced-resolve` since it's the only package out
-  there that supports up-to-date `node` resolution mechanisms like "exports" in
-  `package.json` which are needed to determine which file can be executed by
-  `node` itself
-- 🧩️ **Customizable import resolution** — it exposes options that are used in
-  both `esbuild` and `enhanced-resolve`, so you can provide things like
+- 🚀 **No dependencies** + 1 **peer** dependency of `esbuild`
+- 🧩️ **Customizable import resolution** — it exposes
+  [options used in](https://esbuild.github.io/api/#path-resolution) `esbuild`,
+  so you can provide things like
   [custom conditions](https://nodejs.org/api/packages.html#packages_resolving_user_conditions)
   for
-  [conditional exports](https://nodejs.org/api/packages.html#conditional-exports).
-  Simply pass in a second argument like so:
+  [conditional exports](https://nodejs.org/api/packages.html#conditional-exports),
+  aliases, etc. Simply pass in a second argument like so:
   ```ts
   await importSingleTs('./some.ts', { conditions: ['mycompany-dev'], alias: { a: "b" }, ... })
   ```
@@ -105,3 +105,10 @@ If this makes your work easier,
 
 - replace `enhanced-resolve` when
   [web-infra-dev/oxc](https://github.com/web-infra-dev/oxc) ports it to Rust
+
+## Development notes
+
+- It's build as `cjs` but can be used in both `CJS` and `ESM` environments.
+  That's because in `mjs` can't use stack trace to figure out the directory
+  where `importSingleTs` was called from:
+  https://github.com/nodejs/node/issues/46992
