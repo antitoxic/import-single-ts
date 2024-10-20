@@ -26,6 +26,7 @@ interface ResolutionOptions
     | 'resolveExtensions'
     | 'mainFields'
     | 'nodePaths'
+    | 'sourcemap'
   > {}
 
 export const importSingleTs = async (
