@@ -2,7 +2,7 @@ import * as fs from 'node:fs';
 import * as crypto from 'node:crypto';
 import { builtinModules } from 'node:module';
 import * as path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { build, BuildOptions } from 'esbuild';
 
@@ -167,7 +167,7 @@ export const importSingleTs = async (
                 );
                 return {
                   external: true,
-                  ...(generatedPath && { path: generatedPath }),
+                  ...(generatedPath && { path: pathToFileURL(generatedPath).href }),
                 };
               });
             },
@@ -178,8 +178,10 @@ export const importSingleTs = async (
   );
 
   try {
+    const tempPath = tempFilePathPerResolvedImportPath.get(resolvedImportPath);
+    const encodedPath = pathToFileURL(tempPath!).href;
     return await import(
-      tempFilePathPerResolvedImportPath.get(resolvedImportPath)!
+      encodedPath
     );
   } finally {
     tempFilePathPerResolvedImportPath.forEach(fileNameTemp => {
