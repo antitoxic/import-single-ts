@@ -2,12 +2,13 @@ import * as fs from 'node:fs';
 import * as crypto from 'node:crypto';
 import { builtinModules } from 'node:module';
 import * as path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { build, BuildOptions } from 'esbuild';
 
 const fsp = fs.promises;
 
+const IS_RUNNING_ON_WINDOWS = process.platform === 'win32';
 const BUILTIN_MODULES_SET = new Set(builtinModules);
 const NODEJS_SUPPORTED_FILE_EXTENSIONS = [
   'js',
@@ -20,12 +21,15 @@ const NODEJS_SUPPORTED_FILE_EXTENSIONS = [
 interface ResolutionOptions
   extends Pick<
     BuildOptions,
+    // pure resolution options
     | 'conditions'
     | 'alias'
     | 'loader'
     | 'resolveExtensions'
     | 'mainFields'
     | 'nodePaths'
+    // debugging options
+    | 'sourcemap'
   > {}
 
 export const importSingleTs = async (
@@ -167,7 +171,11 @@ export const importSingleTs = async (
                 );
                 return {
                   external: true,
-                  ...(generatedPath && { path: generatedPath }),
+                  ...(generatedPath && {
+                    path: IS_RUNNING_ON_WINDOWS
+                      ? pathToFileURL(generatedPath).href
+                      : generatedPath,
+                  }),
                 };
               });
             },
@@ -178,13 +186,16 @@ export const importSingleTs = async (
   );
 
   try {
+    const fileNameTemp =
+      tempFilePathPerResolvedImportPath.get(resolvedImportPath)!;
     return await import(
-      tempFilePathPerResolvedImportPath.get(resolvedImportPath)!
+      IS_RUNNING_ON_WINDOWS ? pathToFileURL(fileNameTemp).href : fileNameTemp
     );
   } finally {
     tempFilePathPerResolvedImportPath.forEach(fileNameTemp => {
       fsp.unlink(fileNameTemp).catch(() => {
-        // Ignore errors
+        // Ignore errors, only log them
+        console.error(`import-single-ts: COULD NOT DELETE '${fileNameTemp}'`);
       });
     });
   }
