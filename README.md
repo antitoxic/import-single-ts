@@ -101,11 +101,6 @@ If this makes your work easier,
   run only for a single project, so if you are in a monorepo environment, and
   you depend on typescript files from other projects it won't work as expected.
 
-## Possible improvements
-
-- replace `enhanced-resolve` when
-  [web-infra-dev/oxc](https://github.com/web-infra-dev/oxc) ports it to Rust
-
 ## Development notes
 
 - It's build as `cjs` but can be used in both `CJS` and `ESM` environments.
