@@ -16,6 +16,7 @@
       "default": "./lib/import-single.cjs"
     }
   },
+  "types": "./lib/import-single.d.ts",
   "files": [
     "lib"
   ],
